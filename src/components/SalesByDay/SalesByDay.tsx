@@ -42,20 +42,14 @@ import {
   ExtensionContextData,
   getCoreSDK
 } from "@looker/extension-sdk-react"
-import { List, Dictionary } from "lodash";
+
 
 export const SalesByDay =  () => {
   const [messages, setMessages] = React.useState("")
   const [data, setData] = React.useState([])
+  const [cool, setCool] = React.useState([])
   const extensionContext = useContext<ExtensionContextData>(ExtensionContext)
   const sdk = extensionContext.coreSDK
-
-  const updateMessages = (message: string) => {
-    setMessages(prevMessages => {
-      const maybeLineBreak = prevMessages.length === 0 ? '' : '\n'
-      return `${prevMessages}${maybeLineBreak}${message}`
-    })
-  }
 
   useEffect(() => {
     parent()
@@ -69,27 +63,26 @@ export const SalesByDay =  () => {
         getCoreSDK()
           .run_inline_query({
             result_format: "json_detail",
-            limit: 10,
+            limit: limit,
             body: {
               total: true,
               model: model,
               view: explore,
               fields: fields,
-              limit: limit,
               filters: filters,
               sorts: sorts
             }
           })
           .then((response) => {
             if (response.ok) {
-              const x = response.value.data.map(row => {return row['order_items.created_date'].value})
-              const y = response.value.data.map(row => {return row['order_items.total_sale_price'].value})
-              resolve(y)
+              // const x = response.value.data.map(row => {return row['order_items.created_date'].value})
+              // const y = response.value.data.map(row => {return row['order_items.count'].value})
+              resolve(response.value)
             } else {
-              updateMessages('Network Error')
+              console.log('Network error with API call')
             }
           })
-          .catch(error => updateMessages('Code error'))   
+          .catch(error => console.log('Code error'))   
       })
      
     }
@@ -97,88 +90,39 @@ export const SalesByDay =  () => {
     const data1 = await myInlineApiCall(
                       "thelook", 
                       "order_items", 
-                      ["order_items.created_date","order_items.total_sale_price"], 
+                      ["order_items.created_date","order_items.count"], 
                       ["order_items.created_date desc"],
                       "35",
                       {"category.name":"socks"}
                      )
-    console.log(data1)
-    setData(data1)
+    setCool(data1)
 
   }
+console.log(cool.data)
+let data2 = (cool && cool.data) ? cool.data: []
+// console.log(cool.data.map(row => {return row['order_items.count'].value}))
 
   const options: Highcharts.Options = {
     title: {
-        text: 'My chart'
+        text: 'Sales Volume by Day'
     },
+    // xAxis: {
+    //   categories: cool.data.map(row => {return row['order_items.created_date'].value}),
+    // },    
     series: [
       {
         type: 'line',
-        // data: [1, 2, 3, 4, 5, 6, 7]
-        data: data
+        data: data2.map(row => {return row['order_items.count'].value})
       }
   ]
     
 }
 
-  const allConnectionsClick = () => {
-      sdk.all_connections()
-      .then((response) => {
-        if (response.ok) {
-          response.value.forEach(connection => {
-            updateMessages(connection.name || '')
-          })
-        } else {
-          updateMessages('Error getting connections')
-        }
-      })
-      .catch(error => updateMessages('Error getting connections'))
-  }
-
-  const searchFoldersClick = () => {
-    sdk.search_folders({ parent_id: '1'})
-    .then((response) => {
-      if (response.ok) {
-        updateMessages(JSON.stringify(response.value, null, 2))
-      } else {
-        updateMessages('Error invoking search folders')
-      }
-    })
-    .catch(error => updateMessages('Error invoking search folders'))
-  }
-
-
-  const inlineQueryClick = () => {
-    // alternate mechanism to get sdk.
-    getCoreSDK()
-      .run_inline_query({
-        result_format: "json_detail",
-        limit: 10,
-        body: {
-          total: true,
-          model: "thelook",
-          view: "users",
-          fields: ["last_name", "gender"],
-          sorts: [`last_name desc`]
-        }
-      })
-      .then((response) => {
-        if (response.ok) {
-          updateMessages(JSON.stringify(response.value, null, 2))
-        } else {
-          updateMessages('Error invoking inline query')
-        }
-      })
-      .catch(error => updateMessages('Error invoking inline query'))
-  }
-
-  const clearMessagesClick = () => {
-    setMessages('')
-  }
+ 
 
   return (
     <>
-      <Heading my="xlarge">Hello Sales Engineering!</Heading>
+      <Heading my="xlarge">Sales Volume by Day</Heading>
       <Box display="flex" flexDirection="row">
         <Box display="flex" flexDirection="column" width="100%">
           <div>

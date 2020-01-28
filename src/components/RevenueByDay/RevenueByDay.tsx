@@ -36,7 +36,6 @@ import {
   ExtensionContextData,
   getCoreSDK
 } from "@looker/extension-sdk-react"
-import { List, Dictionary } from "lodash";
 
 export const RevenueByDay =  () => {
   const [messages, setMessages] = React.useState("")
@@ -63,13 +62,12 @@ export const RevenueByDay =  () => {
         getCoreSDK()
           .run_inline_query({
             result_format: "json_detail",
-            limit: 10,
+            limit: limit,
             body: {
               total: true,
               model: model,
               view: explore,
               fields: fields,
-              limit: limit,
               filters: filters,
               sorts: sorts
             }
@@ -78,7 +76,7 @@ export const RevenueByDay =  () => {
             if (response.ok) {
               const x = response.value.data.map(row => {return row['order_items.created_date'].value})
               const y = response.value.data.map(row => {return row['order_items.total_sale_price'].value})
-              resolve(y)
+              resolve({'x':x,'y':y})
             } else {
               updateMessages('Network Error')
             }
@@ -103,73 +101,26 @@ export const RevenueByDay =  () => {
 
   const options: Highcharts.Options = {
     title: {
-        text: 'My chart'
+        text: 'Revenue by Day'
     },
+    xAxis: {
+      categories: data['x'],
+    },        
     series: [
       {
         type: 'line',
         // data: [1, 2, 3, 4, 5, 6, 7]
-        data: data
+        data: data['y']
       }
   ]
     
 }
 
 
-  const allConnectionsClick = () => {
-      sdk.all_connections()
-      .then((response) => {
-        if (response.ok) {
-          response.value.forEach(connection => {
-            updateMessages(connection.name || '')
-          })
-        } else {
-          updateMessages('Error getting connections')
-        }
-      })
-      .catch(error => updateMessages('Error getting connections'))
-  }
-
-  const searchFoldersClick = () => {
-    sdk.search_folders({ parent_id: '1'})
-    .then((response) => {
-      if (response.ok) {
-        updateMessages(JSON.stringify(response.value, null, 2))
-      } else {
-        updateMessages('Error invoking search folders')
-      }
-    })
-    .catch(error => updateMessages('Error invoking search folders'))
-  }
 
 
-  const inlineQueryClick = () => {
-    // alternate mechanism to get sdk.
-    getCoreSDK()
-      .run_inline_query({
-        result_format: "json_detail",
-        limit: 10,
-        body: {
-          total: true,
-          model: "thelook",
-          view: "users",
-          fields: ["last_name", "gender"],
-          sorts: [`last_name desc`]
-        }
-      })
-      .then((response) => {
-        if (response.ok) {
-          updateMessages(JSON.stringify(response.value, null, 2))
-        } else {
-          updateMessages('Error invoking inline query')
-        }
-      })
-      .catch(error => updateMessages('Error invoking inline query'))
-  }
 
-  const clearMessagesClick = () => {
-    setMessages('')
-  }
+
 
   return (
     <>
